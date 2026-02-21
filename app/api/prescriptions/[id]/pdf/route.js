@@ -1,0 +1,63 @@
+import { NextResponse } from 'next/server';
+import { query } from '@/lib/db';
+import { getAuthFromRequest, requireDoctor } from '@/lib/auth-request';
+import { buildPrescriptionPDF } from '@/lib/pdf';
+
+export async function GET(request, { params }) {
+  try {
+    const auth = await getAuthFromRequest();
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!requireDoctor(auth)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    const { id: idParam } = await params;
+    const id = parseInt(idParam, 10);
+    if (Number.isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+
+    const presc = await query(
+      `SELECT p.id, p.structured_json, p.status
+       FROM Prescriptions p
+       JOIN Conversations c ON c.id = p.conversation_id
+       WHERE p.id = @id AND c.doctor_id = @doctor_id`,
+      { id, doctor_id: auth.id }
+    );
+    const prescription = presc.recordset[0];
+    if (!prescription) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (prescription.status !== 'approved') {
+      return NextResponse.json({ error: 'Prescription must be approved to download PDF' }, { status: 400 });
+    }
+
+    const meds = await query(
+      `SELECT name, dosage, frequency, duration, instructions FROM Medications WHERE prescription_id = @id`,
+      { id }
+    );
+    const inv = await query(
+      `SELECT test_name FROM Investigations WHERE prescription_id = @id`,
+      { id }
+    );
+    const user = await query(`SELECT name FROM Users WHERE id = @id`, { id: auth.id });
+    const doctorName = user.recordset[0]?.name || 'Doctor';
+
+    const structured = JSON.parse(prescription.structured_json || '{}');
+    const pdfData = {
+      hospitalName: 'MediScript AI',
+      patientDetails: structured.patient_details || {},
+      diagnosis: structured.diagnosis || [],
+      medications: meds.recordset || [],
+      investigations: (inv.recordset || []).map((r) => r.test_name),
+      advice: structured.advice || [],
+      followUp: structured.follow_up || '',
+      doctorName,
+    };
+
+    const pdfBuffer = await buildPrescriptionPDF(pdfData);
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="prescription-' + id + '.pdf"',
+      },
+    });
+  } catch (err) {
+    console.error('PDF error:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

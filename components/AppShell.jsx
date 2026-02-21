@@ -1,0 +1,156 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+
+const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
+  { href: '/record', label: 'Record Consultation', icon: MicIcon },
+  { href: '/conversations', label: 'Conversations', icon: DocIcon },
+  { href: '/dashboard/patients', label: 'Patients', icon: PatientsIcon },
+];
+
+function DashboardIcon({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+    </svg>
+  );
+}
+function MicIcon({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+    </svg>
+  );
+}
+function DocIcon({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5m-4 0V9a2 2 0 012-2h.01M9 16a2 2 0 002 2h.01M15 16a2 2 0 002 2m4 0a2 2 0 002-2V8a2 2 0 00-2-2h-2m-4-1V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0h.01" />
+    </svg>
+  );
+}
+function PatientsIcon({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  );
+}
+function ChevronLeftIcon({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
+function LogoutIcon({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+  );
+}
+function ChevronDownIcon({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+export default function AppShell({ user, children }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/');
+    router.refresh();
+  }
+
+  const initials = user?.name
+    ? user.name.split(/\s+/).map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    : user?.email?.slice(0, 2).toUpperCase() || '?';
+
+  return (
+    <div className="flex min-h-screen bg-slate-100">
+      {/* Sidebar */}
+      <aside
+        className={`flex flex-col border-r border-slate-200 bg-white transition-all duration-200 ${
+          sidebarCollapsed ? 'w-16' : 'w-56'
+        }`}
+      >
+        <div className="flex h-14 items-center gap-2 border-b border-slate-200 px-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
+            Rx
+          </div>
+          {!sidebarCollapsed && (
+            <span className="truncate font-semibold text-slate-800">MediScript AI</span>
+          )}
+        </div>
+        <nav className="flex-1 space-y-0.5 p-2">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  active
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                {!sidebarCollapsed && <span>{label}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="border-t border-slate-200 p-2">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((c) => !c)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+          >
+            <ChevronLeftIcon className={`h-5 w-5 shrink-0 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+            {!sidebarCollapsed && <span>Collapse</span>}
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 mt-0.5"
+          >
+            <LogoutIcon className="h-5 w-5 shrink-0" />
+            {!sidebarCollapsed && <span>Logout</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex flex-1 flex-col min-w-0">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
+          <div>
+            <h1 className="text-lg font-bold text-slate-900">AI Prescription System</h1>
+            <p className="text-xs text-slate-500">Hospital-Grade Medical Records</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+              {initials}
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium text-slate-800">{user?.name || user?.email || 'User'}</p>
+              <p className="text-xs text-slate-500">{user?.role === 'doctor' ? 'Doctor' : user?.role || '—'}</p>
+            </div>
+            <ChevronDownIcon className="h-5 w-5 text-slate-400" />
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+      </div>
+    </div>
+  );
+}
