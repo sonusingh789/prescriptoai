@@ -27,6 +27,12 @@ export default function AudioRecorder({ onSubmit, disabled }) {
 
   const startRecording = useCallback(async () => {
     try {
+      const hasNavigator = typeof navigator !== 'undefined';
+      const canRecord = hasNavigator && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+      if (!canRecord) {
+        alert('Recording not supported in this browser or connection. Please use a modern browser over HTTPS.');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
@@ -115,7 +121,7 @@ export default function AudioRecorder({ onSubmit, disabled }) {
               disabled={disabled || submitting}
               className="rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {submitting ? 'Submitting…' : 'Submit recording'}
+              {submitting ? 'Submitting...' : 'Submit recording'}
             </button>
             <button
               type="button"

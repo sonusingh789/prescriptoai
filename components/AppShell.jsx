@@ -65,6 +65,7 @@ export default function AppShell({ user, children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -76,80 +77,127 @@ export default function AppShell({ user, children }) {
     ? user.name.split(/\s+/).map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : user?.email?.slice(0, 2).toUpperCase() || '?';
 
-  return (
-    <div className="flex min-h-screen bg-slate-100">
-      {/* Sidebar */}
-      <aside
-        className={`flex flex-col border-r border-slate-200 bg-white transition-all duration-200 ${
-          sidebarCollapsed ? 'w-16' : 'w-56'
-        }`}
-      >
-        <div className="flex h-14 items-center gap-2 border-b border-slate-200 px-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
-            Rx
-          </div>
-          {!sidebarCollapsed && (
-            <span className="truncate font-semibold text-slate-800">MediScript AI</span>
-          )}
+  const NavLinks = ({ collapsed = false, onNavigate }) => (
+    <nav className="flex-1 space-y-1 px-3 py-2">
+      {navItems.map(({ href, label, icon: Icon }) => {
+        const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+              active
+                ? 'bg-blue-50 text-blue-700 shadow-[inset_0_1px_0_rgba(59,130,246,0.15)] ring-1 ring-blue-100'
+                : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <span
+              className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                active ? 'bg-white text-blue-600' : 'bg-slate-100 text-slate-500'
+              }`}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+            </span>
+            {!collapsed && <span className="truncate">{label}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  const Sidebar = ({ collapsed = false, mobile = false }) => (
+    <aside
+      className={`flex h-full flex-col border-r border-slate-200 bg-white transition-all duration-200 ${
+        mobile ? 'w-72' : collapsed ? 'w-20' : 'w-64'
+      }`}
+    >
+      <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-sm font-bold text-white">
+          Rx
         </div>
-        <nav className="flex-1 space-y-0.5 p-2">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                  active
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                {!sidebarCollapsed && <span>{label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t border-slate-200 p-2">
+        {!collapsed && (
+          <div>
+            <p className="text-sm font-semibold text-slate-900">MediScript AI</p>
+            <p className="text-xs text-slate-500">Medical Records</p>
+          </div>
+        )}
+      </div>
+
+      <NavLinks collapsed={collapsed} onNavigate={mobile ? () => setMobileOpen(false) : undefined} />
+
+      <div className="mt-auto border-t border-slate-200 p-3 space-y-1.5">
+        {!mobile && (
           <button
             type="button"
             onClick={() => setSidebarCollapsed((c) => !c)}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
-            <ChevronLeftIcon className={`h-5 w-5 shrink-0 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
-            {!sidebarCollapsed && <span>Collapse</span>}
+            <ChevronLeftIcon className={`h-5 w-5 shrink-0 ${collapsed ? 'rotate-180' : ''}`} />
+            {!collapsed && <span>Collapse</span>}
           </button>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 mt-0.5"
-          >
-            <LogoutIcon className="h-5 w-5 shrink-0" />
-            {!sidebarCollapsed && <span>Logout</span>}
-          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+        >
+          <LogoutIcon className="h-5 w-5 shrink-0" />
+          {!collapsed && <span>Logout</span>}
+        </button>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex">
+        <Sidebar collapsed={sidebarCollapsed} />
+      </div>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 flex lg:hidden">
+          <div className="w-full bg-slate-900/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="pointer-events-auto shadow-2xl">
+            <Sidebar mobile />
+          </div>
         </div>
-      </aside>
+      )}
 
       {/* Main */}
-      <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">AI Prescription System</h1>
-            <p className="text-xs text-slate-500">Hospital-Grade Medical Records</p>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+              aria-label="Open navigation"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div className="min-w-0 leading-tight">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 sm:text-[13px]">
+                PrescriptoAI
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white sm:h-10 sm:w-10 sm:text-sm">
               {initials}
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-slate-800">{user?.name || user?.email || 'User'}</p>
-              <p className="text-xs text-slate-500">{user?.role === 'doctor' ? 'Doctor' : user?.role || '—'}</p>
+            <div className="text-right leading-tight">
+              <p className="text-sm font-semibold text-slate-900 truncate max-w-[120px] sm:max-w-none">{user?.name || user?.email || 'User'}</p>
+              <p className="text-[12px] text-slate-500 sm:text-xs">{user?.role === 'doctor' ? 'Doctor' : user?.role || '-'}</p>
             </div>
             <ChevronDownIcon className="h-5 w-5 text-slate-400" />
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

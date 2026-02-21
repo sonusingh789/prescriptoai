@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getAuthFromRequest, requireDoctor } from '@/lib/auth-request';
-import { transcribeWithWhisper, getStructuredPrescriptionFromTranscript } from '@/lib/openai';
+import { transcribeWithWhisper, getStructuredPrescriptionFromTranscript, summarizeTranscript } from '@/lib/openai';
 import { sanitizeTranscript } from '@/utils/sanitize';
 import { validateRecordBody } from '@/utils/validation';
 
@@ -27,7 +27,8 @@ export async function POST(request) {
     const sanitizedTranscript = sanitizeTranscript(transcript);
 
     const structured = await getStructuredPrescriptionFromTranscript(sanitizedTranscript);
-    const structuredJson = JSON.stringify(structured);
+    const summary = await summarizeTranscript(sanitizedTranscript);
+    const structuredJson = JSON.stringify({ ...structured, summary });
 
     await query(
       `INSERT INTO Conversations (patient_id, doctor_id, audio_url, transcript, created_at)

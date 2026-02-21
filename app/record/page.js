@@ -63,54 +63,58 @@ export default function RecordPage() {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 text-slate-600">
-        Loading…
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Loading...
       </div>
     );
   }
 
   return (
     <AppShell user={user}>
-      <div className="mx-auto max-w-3xl">
-        <h2 className="mb-1 text-2xl font-bold text-slate-900">Record Consultation</h2>
-        <p className="mb-8 text-slate-500">Start a voice-based consultation recording</p>
+      <div className="mx-auto max-w-4xl px-2 sm:px-4">
+        <div className="mb-8">
+          <h2 className="text-3xl font-semibold text-slate-900">Record Consultation</h2>
+          <p className="text-sm text-slate-500">Start a voice-based consultation recording</p>
+        </div>
 
         {user?.role !== 'doctor' ? (
           <p className="text-slate-600">Only doctors can record consultations.</p>
         ) : (
           <>
-            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-slate-800">Select Patient</h3>
-              <select
-                value={selectedPatientId}
-                onChange={(e) => setSelectedPatientId(e.target.value)}
-                disabled={loadingPatients}
-                className="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-              >
-                <option value="">Select patient</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} - MRN{String(p.id).padStart(6, '0')}
-                    {p.age != null || p.gender ? ` (${[p.age && `${p.age}y`, p.gender].filter(Boolean).join(', ')})` : ''}
-                  </option>
-                ))}
-              </select>
-              {!loadingPatients && patients.length === 0 && (
-                <p className="mt-2 text-sm text-slate-500">
-                  No patients yet. <a href="/dashboard/patients" className="text-blue-600 hover:underline">Add a patient</a> first.
-                </p>
-              )}
-            </div>
+            <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-slate-800">Select Patient</h3>
+                <div className="rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+                  <select
+                    value={selectedPatientId}
+                    onChange={(e) => setSelectedPatientId(e.target.value)}
+                    disabled={loadingPatients}
+                    className="w-full bg-transparent text-sm font-medium text-slate-900 outline-none disabled:opacity-50"
+                  >
+                    <option value="">Choose patient...</option>
+                    {patients.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} - MRN{String(p.id).padStart(6, '0')}
+                        {p.age != null || p.gender ? ` (${[p.age && `${p.age}y`, p.gender].filter(Boolean).join(', ')})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {!loadingPatients && patients.length === 0 && (
+                  <p className="mt-2 text-sm text-slate-500">
+                    No patients yet.{' '}
+                    <a href="/dashboard/patients" className="font-semibold text-blue-600 hover:underline">
+                      Add a patient
+                    </a>{' '}
+                    first.
+                  </p>
+                )}
+                {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+              </div>
 
-            {error && (
-              <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-            )}
-
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-              <AudioRecorder
-                onSubmit={handleSubmit}
-                disabled={!selectedPatientId || loadingPatients}
-              />
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-gradient-to-b from-white to-slate-50 p-8 sm:p-12">
+                <AudioRecorder onSubmit={handleSubmit} disabled={!selectedPatientId || loadingPatients} />
+              </div>
             </div>
           </>
         )}

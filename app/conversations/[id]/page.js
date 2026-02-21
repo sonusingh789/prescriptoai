@@ -21,10 +21,15 @@ export default function ConversationPage() {
 
   useEffect(() => {
     fetch('/api/auth/me')
-      .then((r) => (r.status === 401 ? null : r.json()))
+      .then(async (r) => {
+        if (r.status === 401) {
+          router.push('/login');
+          return null;
+        }
+        return r.json().catch(() => null);
+      })
       .then((d) => {
         if (d?.user) setUser(d.user);
-        if (r.status === 401) router.push('/login');
       })
       .catch(() => {});
   }, [router]);
@@ -141,15 +146,15 @@ export default function ConversationPage() {
 
   if (loading && !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 text-slate-600">
-        Loading…
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Loading...
       </div>
     );
   }
 
   if (error && !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 text-red-600">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-red-600">
         {error}
       </div>
     );
@@ -164,31 +169,47 @@ export default function ConversationPage() {
   const diagnosisList = structured.diagnosis || [];
   const adviceList = structured.advice || [];
   const followUp = structured.follow_up || '';
+  const transcript = conversation.transcript || '';
+
+  const complaintSummary = (() => {
+    if (structured.summary) return structured.summary;
+    if (!transcript) return '';
+    const clean = transcript.replace(/\s+/g, ' ').trim();
+    if (clean.length <= 220) return clean;
+    const firstSentence = clean.split(/(?<=[.?!])\s+/)[0] || '';
+    if (firstSentence.length >= 80 && firstSentence.length <= 220) return firstSentence;
+    return clean.slice(0, 220).trim() + '...';
+  })();
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 text-slate-600">
-        Loading…
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Loading...
       </div>
     );
   }
 
   return (
     <AppShell user={user}>
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Prescription Review</h2>
+      <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 text-slate-900">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-emerald-50/40 p-6 shadow-sm">
+          <div className="space-y-1">
+            <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
+              Prescription Review
+            </h2>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-600">
+              MediScript AI
+            </p>
             <p className="text-slate-600">
               Patient: {conversation.patient_name} ({mrn(conversation.patient_id)})
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <a
               href={`/api/prescriptions/${prescription.id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-50 sm:flex-none"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -199,7 +220,7 @@ export default function ConversationPage() {
               <a
                 href={`/api/prescriptions/${prescription.id}/pdf`}
                 download
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 sm:flex-none"
               >
                 Download PDF
               </a>
@@ -207,50 +228,59 @@ export default function ConversationPage() {
           </div>
         </div>
 
-        {error && <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">Patient Information</h3>
               <dl className="space-y-2 text-sm">
                 <div><dt className="text-slate-500">Name</dt><dd className="font-medium text-slate-800">{conversation.patient_name}</dd></div>
                 <div><dt className="text-slate-500">MRN</dt><dd className="font-medium text-slate-800">{mrn(conversation.patient_id)}</dd></div>
-                <div><dt className="text-slate-500">Age / Gender</dt><dd className="font-medium text-slate-800">{[conversation.age && `${conversation.age} years`, conversation.gender].filter(Boolean).join(' / ') || '—'}</dd></div>
-                <div><dt className="text-slate-500">Date</dt><dd className="font-medium text-slate-800">{conversation.created_at ? new Date(conversation.created_at).toISOString().slice(0, 10) : '—'}</dd></div>
+                <div><dt className="text-slate-500">Age / Gender</dt><dd className="font-medium text-slate-800">{[conversation.age && `${conversation.age} years`, conversation.gender].filter(Boolean).join(' / ') || '-'}</dd></div>
+                <div><dt className="text-slate-500">Date</dt><dd className="font-medium text-slate-800">{conversation.created_at ? new Date(conversation.created_at).toISOString().slice(0, 10) : '-'}</dd></div>
               </dl>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">Clinical Details</h3>
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="text-slate-500">Presenting Complaints</p>
-                  <p className="text-slate-800">{Array.isArray(complaints) ? complaints.join(', ') : complaints || '—'}</p>
+                  {complaintSummary && (
+                    <p className="mt-1 rounded-lg bg-blue-50 px-3 py-2 text-slate-800">{complaintSummary}</p>
+                  )}
+                  <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">
+                    {Array.isArray(complaints) ? complaints.join(', ') : complaints || '-'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-slate-500">Diagnosis</p>
-                  <p className="text-slate-800">{Array.isArray(diagnosisList) ? diagnosisList.map((d) => (typeof d === 'string' ? d : d.name)).join(', ') : diagnosisList || '—'}</p>
+                  <p className="text-slate-800">{Array.isArray(diagnosisList) ? diagnosisList.map((d) => (typeof d === 'string' ? d : d.name)).join(', ') : diagnosisList || '-'}</p>
                 </div>
               </div>
             </section>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">MediScript AI — Prescription</h3>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">MediScript AI - Prescription</h3>
             <div className="space-y-3 text-sm">
               <p className="font-medium text-slate-800">Patient: {conversation.patient_name} ({mrn(conversation.patient_id)})</p>
-              <p className="text-slate-600">Diagnosis: {Array.isArray(diagnosisList) ? diagnosisList.map((d) => (typeof d === 'string' ? d : d.name)).join(', ') : '—'}</p>
+              <p className="text-slate-600">Diagnosis: {Array.isArray(diagnosisList) ? diagnosisList.map((d) => (typeof d === 'string' ? d : d.name)).join(', ') : '-'}</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead><tr className="border-b border-slate-200"><th className="py-2 font-semibold">Medicine</th><th className="py-2 font-semibold">Dosage</th><th className="py-2 font-semibold">Frequency</th><th className="py-2 font-semibold">Duration</th></tr></thead>
                   <tbody>
                     {medications.map((m, i) => (
                       <tr key={i} className="border-b border-slate-100">
-                        <td className="py-2">{m.name || '—'}</td>
-                        <td className="py-2">{m.dosage || '—'}</td>
-                        <td className="py-2">{m.frequency || '—'}</td>
-                        <td className="py-2">{m.duration || '—'}</td>
+                        <td className="py-2">{m.name || '-'}</td>
+                        <td className="py-2">{m.dosage || '-'}</td>
+                        <td className="py-2">{m.frequency || '-'}</td>
+                        <td className="py-2">{m.duration || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -262,14 +292,7 @@ export default function ConversationPage() {
           </div>
         </div>
 
-        {conversation.transcript && (
-          <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">Transcript</h3>
-            <p className="whitespace-pre-wrap text-sm text-slate-700">{conversation.transcript}</p>
-          </section>
-        )}
-
-        <section className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking text-slate-500">Medications</h3>
             {isDraft && (
@@ -296,7 +319,7 @@ export default function ConversationPage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking text-slate-500">Investigations</h3>
             {isDraft && (
@@ -319,16 +342,16 @@ export default function ConversationPage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">Additional Instructions</h3>
           <div className="space-y-4 text-sm">
             <div>
               <label className="text-slate-600">Advice</label>
-              <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{Array.isArray(adviceList) ? adviceList.join(', ') : adviceList || '—'}</p>
+              <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{Array.isArray(adviceList) ? adviceList.join(', ') : adviceList || '-'}</p>
             </div>
             <div>
               <label className="text-slate-600">Follow-up</label>
-              <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{followUp || '—'}</p>
+              <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{followUp || '-'}</p>
             </div>
           </div>
         </section>
@@ -337,11 +360,11 @@ export default function ConversationPage() {
           <div className="mt-8 flex flex-wrap gap-3">
             <button type="button" onClick={saveDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-              {saving ? 'Saving…' : 'Save draft'}
+              {saving ? 'Saving...' : 'Save draft'}
             </button>
             <button type="button" onClick={approve} disabled={approving} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              {approving ? 'Approving…' : 'Approve'}
+              {approving ? 'Approving...' : 'Approve'}
             </button>
           </div>
         )}
