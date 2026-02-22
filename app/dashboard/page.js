@@ -93,14 +93,14 @@ export default function DashboardPage() {
   return (
     <AppShell user={user}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 text-white shadow-lg">
+        <div className="mb-8 rounded-2xl bg-gradient-to-r from-sky-50 via-white to-indigo-50 p-6 ring-1 ring-slate-100">
           <div className="px-5 py-6 sm:px-8 sm:py-9">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-indigo-100 sm:text-xs">Dashboard</p>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500 sm:text-xs">Dashboard</p>
                 <h1 className="text-3xl font-semibold leading-snug sm:text-4xl">Welcome back, {user.name || 'Doctor'}</h1>
-                <p className="text-sm text-indigo-50 sm:text-base">
-                  Quick snapshot of your consultations, prescriptions, and patients. Optimized for phone and desktop.
+                <p className="text-sm text-slate-600 sm:text-base">
+                  Quick snapshot of your consultations, prescriptions, and patients.
                 </p>
               </div>
               {isDoctor && (
@@ -116,7 +116,9 @@ export default function DashboardPage() {
                   </Link>
                   <Link
                     href="/dashboard/patients"
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 md:flex-none"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl 
+border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold 
+text-gray-700 transition hover:bg-gray-100 md:flex-none"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M7 10a4 4 0 118 0 4 4 0 01-8 0z" />
@@ -131,7 +133,7 @@ export default function DashboardPage() {
 
         {isDoctor ? (
           <>
-            <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mb-8 rounded-2xl bg-gradient-to-r from-sky-50 via-white to-indigo-50 p-6 ring-1 ring-slate-100 mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Consultations Today"
                 value={metrics.todayCount}
@@ -145,7 +147,7 @@ export default function DashboardPage() {
               <StatCard
                 title="Draft Prescriptions"
                 value={metrics.draftCount}
-                accent="bg-amber-50 text-amber-600 ring-1 ring-amber-200"
+                accent="bg-white text-amber-600 "
                 icon={
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -155,7 +157,7 @@ export default function DashboardPage() {
               <StatCard
                 title="Approved Prescriptions"
                 value={metrics.approvedCount}
-                accent="bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
+                accent=" text-emerald-600 "
                 icon={
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -165,7 +167,7 @@ export default function DashboardPage() {
               <StatCard
                 title="Total Patients"
                 value={patientCount}
-                accent="bg-sky-50 text-sky-600 ring-1 ring-sky-200"
+                accent=" text-sky-600 "
                 icon={
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M7 10a4 4 0 118 0 4 4 0 01-8 0z" />
@@ -212,9 +214,8 @@ export default function DashboardPage() {
                             )}
                           </div>
                           <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
-                              statusColors[c.status] || statusColors.draft
-                            }`}
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusColors[c.status] || statusColors.draft
+                              }`}
                           >
                             {c.status === 'approved' ? 'Approved' : 'Draft'}
                           </span>
@@ -278,9 +279,8 @@ export default function DashboardPage() {
                             <td className="px-6 py-4 text-sm text-slate-600">{c.diagnosis || '-'}</td>
                             <td className="px-6 py-4">
                               <span
-                                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${
-                                  statusColors[c.status] || statusColors.draft
-                                }`}
+                                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${statusColors[c.status] || statusColors.draft
+                                  }`}
                               >
                                 {c.status === 'approved' ? 'Approved' : 'Draft'}
                               </span>

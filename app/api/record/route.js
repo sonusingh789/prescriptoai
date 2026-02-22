@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getAuthFromRequest, requireDoctor } from '@/lib/auth-request';
-import { transcribeWithWhisper, getStructuredPrescriptionFromTranscript, summarizeTranscript } from '@/lib/openai';
+import { transcribeWithWhisper, getStructuredPrescriptionFromTranscript } from '@/lib/openai';
 import { sanitizeTranscript } from '@/utils/sanitize';
 import { validateRecordBody } from '@/utils/validation';
 
@@ -27,8 +27,7 @@ export async function POST(request) {
     const sanitizedTranscript = sanitizeTranscript(transcript);
 
     const structured = await getStructuredPrescriptionFromTranscript(sanitizedTranscript);
-    const summary = await summarizeTranscript(sanitizedTranscript);
-    const structuredJson = JSON.stringify({ ...structured, summary });
+    const structuredJson = JSON.stringify(structured);
 
     await query(
       `INSERT INTO Conversations (patient_id, doctor_id, audio_url, transcript, created_at)
@@ -68,9 +67,9 @@ export async function POST(request) {
         }
       );
     }
-    const inv = Array.isArray(structured.investigations_advised) ? structured.investigations_advised : [];
+    const inv = Array.isArray(structured.investigations) ? structured.investigations : [];
     for (const t of inv) {
-      const testName = typeof t === 'string' ? t : t?.test_name || '';
+      const testName = (typeof t === 'string' ? t : t?.test_name) || '';
       if (testName) {
         await query(
           `INSERT INTO Investigations (prescription_id, test_name) VALUES (@prescription_id, @test_name)`,
@@ -79,7 +78,10 @@ export async function POST(request) {
       }
     }
 
-    return NextResponse.json({ conversationId, prescriptionId });
+    return NextResponse.json({
+      transcript: sanitizedTranscript,
+      prescription: structured,
+    });
   } catch (err) {
     console.error('Record/upload error:', err);
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });

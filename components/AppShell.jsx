@@ -118,8 +118,8 @@ export default function AppShell({ user, children }) {
         </div>
         {!collapsed && (
           <div>
-            <p className="text-sm font-semibold text-slate-900">MediScript AI</p>
-            <p className="text-xs text-slate-500">Medical Records</p>
+            <p className="text-sm font-semibold text-slate-900">PrescriptoAI</p>
+            
           </div>
         )}
       </div>
@@ -181,9 +181,7 @@ export default function AppShell({ user, children }) {
               </svg>
             </button>
             <div className="min-w-0 leading-tight">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 sm:text-[13px]">
-                PrescriptoAI
-              </p>
+              
             </div>
           </div>
           <div className="flex items-center gap-3">

@@ -43,7 +43,7 @@ export default function LoginPage() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-blue-600 text-2xl font-bold text-white shadow-lg">
             Rx
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">MediScript AI</h1>
+          <h1 className="text-2xl font-bold text-slate-900">PrescriptoAI</h1>
           <p className="mt-1 text-sm text-slate-500">AI-Powered Prescription System</p>
         </div>
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-slate-500">
-          © 2026 MediScript AI. Hospital-grade medical software.
+          © 2026 PrescriptoAI - AI-powered prescription system for doctors. All rights reserved.
         </p>
       </div>
     </div>

@@ -56,7 +56,7 @@ export default function RecordPage() {
         setError(data.error || 'Upload failed');
         return;
       }
-      router.push(`/conversations/${data.conversationId}`);
+      router.push('/conversations');
     },
     [selectedPatientId, router]
   );
@@ -81,7 +81,7 @@ export default function RecordPage() {
           <p className="text-slate-600">Only doctors can record consultations.</p>
         ) : (
           <>
-            <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="space-y-6 rounded-2xl border border-slate-200 bg-gradient-to-r from-sky-50 via-white to-indigo-50 p-6 ring-1 ring-slate-100 p-6 shadow-sm">
               <div>
                 <h3 className="mb-2 text-sm font-semibold text-slate-800">Select Patient</h3>
                 <div className="rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">

@@ -16,8 +16,86 @@ export default function ConversationPage() {
   const [error, setError] = useState('');
   const [medications, setMedications] = useState([]);
   const [investigations, setInvestigations] = useState([]);
+  const [advice, setAdvice] = useState([]);
+  const [followUpText, setFollowUpText] = useState('');
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [printing, setPrinting] = useState(false);
+
+  const handlePrintPdf = useCallback(async () => {
+    const prescriptionId = data?.prescription?.id;
+    const status = data?.prescription?.status;
+    if (printing || !prescriptionId || status !== 'approved') return;
+
+    setError('');
+    setPrinting(true);
+
+    let objectUrl = '';
+    let iframe = null;
+
+    function cleanup() {
+      try {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      } catch (_) {}
+      try {
+        if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      } catch (_) {}
+      objectUrl = '';
+      iframe = null;
+    }
+
+    try {
+      const pdfUrl = `/api/prescriptions/${prescriptionId}/pdf?disposition=inline`;
+      const res = await fetch(pdfUrl);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `Failed to load PDF (${res.status})`);
+      }
+      const blob = await res.blob();
+      objectUrl = URL.createObjectURL(blob);
+
+      iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = objectUrl;
+      document.body.appendChild(iframe);
+
+      const finish = () => {
+        cleanup();
+        setPrinting(false);
+      };
+
+      iframe.onload = () => {
+        try {
+          const w = iframe.contentWindow;
+          if (!w) throw new Error('No iframe window');
+          w.focus();
+          w.print();
+
+          try {
+            w.addEventListener('afterprint', finish, { once: true });
+          } catch (_) {}
+
+          // Fallback cleanup in case afterprint doesn't fire.
+          setTimeout(finish, 2 * 60 * 1000);
+        } catch (_) {
+          // Fallback: open in a new tab if the browser blocks iframe printing.
+          cleanup();
+          const win = window.open(objectUrl || pdfUrl, '_blank', 'noopener,noreferrer');
+          if (!win) setError('Popup blocked. Please allow popups to print.');
+          setPrinting(false);
+        }
+      };
+    } catch (e) {
+      cleanup();
+      setError(e?.message || 'Failed to print PDF');
+      setPrinting(false);
+    }
+  }, [data, printing]);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -50,16 +128,18 @@ export default function ConversationPage() {
         if (!d) return;
         setData(d);
         setMedications(d.prescription?.medications?.slice() || []);
-        setInvestigations(
-          (d.prescription?.investigations || []).map((i) => (typeof i === 'string' ? i : i.test_name))
-        );
+        setInvestigations((d.prescription?.investigations || []).map((i) => (typeof i === 'string' ? i : i.test_name)));
+        // structured_json is already parsed on the server
+        const adviceBlock = d.prescription?.structured_json?.advice_and_followup || {};
+        setAdvice((adviceBlock.advice || []).slice());
+        setFollowUpText(adviceBlock.follow_up || '');
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id, router]);
 
   const saveDraft = useCallback(async () => {
-    if (!data?.prescription?.id) return;
+    if (!data?.prescription?.id) return false;
     setSaving(true);
     setError('');
     try {
@@ -75,13 +155,19 @@ export default function ConversationPage() {
             instructions: m.instructions ?? '',
           })),
           investigations: investigations.filter(Boolean).map((t) => ({ test_name: t })),
+          advice: advice.filter(Boolean),
+          follow_up: followUpText || '',
         }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setError(err.error || 'Save failed');
-        return;
+        return false;
       }
+      return true;
+    } catch (e) {
+      setError(e.message || 'Save failed');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -92,6 +178,13 @@ export default function ConversationPage() {
     setApproving(true);
     setError('');
     try {
+      // Save current draft first to ensure medications/investigations are persisted
+      const saved = await saveDraft();
+      if (!saved) {
+        setApproving(false);
+        return;
+      }
+
       const res = await fetch(`/api/prescriptions/${data.prescription.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -110,7 +203,7 @@ export default function ConversationPage() {
     } finally {
       setApproving(false);
     }
-  }, [data]);
+  }, [data, saveDraft]);
 
   const addMedication = useCallback(() => {
     setMedications((prev) => [...prev, { name: '', dosage: '', frequency: '', duration: '', instructions: '' }]);
@@ -144,6 +237,22 @@ export default function ConversationPage() {
     });
   }, []);
 
+  const addAdvice = useCallback(() => {
+    setAdvice((prev) => [...prev, '']);
+  }, []);
+
+  const removeAdvice = useCallback((index) => {
+    setAdvice((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const updateAdvice = useCallback((index, value) => {
+    setAdvice((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  }, []);
+
   if (loading && !data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
@@ -165,14 +274,16 @@ export default function ConversationPage() {
   const { conversation, prescription } = data;
   const isDraft = prescription.status === 'draft';
   const structured = prescription.structured_json || {};
-  const complaints = structured.presenting_complaints;
-  const diagnosisList = structured.diagnosis || [];
-  const adviceList = structured.advice || [];
-  const followUp = structured.follow_up || '';
+  const presenting = structured.presenting_complaint || {};
+  const diagnosisBlock = structured.diagnosis || {};
+  const adviceBlock = structured.advice_and_followup || {};
+  const complaints = presenting.associated_symptoms || [];
+  const diagnosisList = [diagnosisBlock.primary, ...(diagnosisBlock.differential || [])].filter(Boolean);
+  const adviceList = adviceBlock.advice || [];
+  const followUp = adviceBlock.follow_up || '';
   const transcript = conversation.transcript || '';
 
-  const complaintSummary = (() => {
-    if (structured.summary) return structured.summary;
+  const complaintSummary = presenting.summary || (() => {
     if (!transcript) return '';
     const clean = transcript.replace(/\s+/g, ' ').trim();
     if (clean.length <= 220) return clean;
@@ -197,33 +308,38 @@ export default function ConversationPage() {
             <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
               Prescription Review
             </h2>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-600">
-              MediScript AI
-            </p>
+            
             <p className="text-slate-600">
               Patient: {conversation.patient_name} ({mrn(conversation.patient_id)})
             </p>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            <a
-              href={`/api/prescriptions/${prescription.id}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-50 sm:flex-none"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Preview PDF
-            </a>
             {prescription.status === 'approved' && (
-              <a
-                href={`/api/prescriptions/${prescription.id}/pdf`}
-                download
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 sm:flex-none"
-              >
-                Download PDF
-              </a>
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrintPdf}
+                  disabled={printing}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-50 sm:flex-none"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 9V4h12v5M6 18h12v2H6v-2Zm0 0H4v-6a2 2 0 012-2h12a2 2 0 012 2v6h-2"
+                    />
+                  </svg>
+                  {printing ? 'Preparing…' : 'Print'}
+                </button>
+                <a
+                  href={`/api/prescriptions/${prescription.id}/pdf`}
+                  download
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 sm:flex-none"
+                >
+                  Download PDF
+                </a>
+              </>
             )}
           </div>
         </div>
@@ -267,9 +383,10 @@ export default function ConversationPage() {
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">MediScript AI - Prescription</h3>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">QUICK PREVIEW </h3>
             <div className="space-y-3 text-sm">
               <p className="font-medium text-slate-800">Patient: {conversation.patient_name} ({mrn(conversation.patient_id)})</p>
+              <p className="text-slate-600">Presenting Complaints: {Array.isArray(complaints) ? complaints.join(', ') : '-'}</p>
               <p className="text-slate-600">Diagnosis: {Array.isArray(diagnosisList) ? diagnosisList.map((d) => (typeof d === 'string' ? d : d.name)).join(', ') : '-'}</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -346,12 +463,37 @@ export default function ConversationPage() {
           <h3 className="mb-4 text-sm font-semibold uppercase tracking text-slate-500">Additional Instructions</h3>
           <div className="space-y-4 text-sm">
             <div>
-              <label className="text-slate-600">Advice</label>
-              <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{Array.isArray(adviceList) ? adviceList.join(', ') : adviceList || '-'}</p>
+              <label className="text-slate-600 flex items-center justify-between">Advice
+                {isDraft && (
+                  <button type="button" onClick={addAdvice} className="ml-3 inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium">
+                    + Add
+                  </button>
+                )}
+              </label>
+              <div className="mt-2 space-y-2">
+                {(advice.length === 0 && !isDraft) ? (
+                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{Array.isArray(advice) ? advice.join(', ') : advice || '-'}</p>
+                ) : (
+                  advice.map((a, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input placeholder="Advice" value={a || ''} onChange={(e) => updateAdvice(i, e.target.value)} disabled={!isDraft} className="flex-1 rounded border border-slate-200 bg-white px-3 py-2 text-sm" />
+                      {isDraft && (
+                        <button type="button" onClick={() => removeAdvice(i)} className="text-red-600 hover:text-red-700" aria-label="Remove">
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
             <div>
               <label className="text-slate-600">Follow-up</label>
-              <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{followUp || '-'}</p>
+              {isDraft ? (
+                <textarea value={followUpText} onChange={(e) => setFollowUpText(e.target.value)} placeholder="Follow-up instructions" className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" />
+              ) : (
+                <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-slate-800">{followUpText || '-'}</p>
+              )}
             </div>
           </div>
         </section>

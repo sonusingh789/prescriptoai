@@ -76,7 +76,7 @@ export default function ConversationsListPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Consultations</p>
               <h2 className="text-3xl font-semibold text-slate-900">Conversations</h2>
-              <p className="text-sm text-slate-600">Search, filter, and open patient conversations across devices.</p>
+              <p className="text-sm text-slate-600">Search, filter, and open patient conversations.</p>
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               <div className="rounded-xl bg-white/80 px-4 py-3 text-center shadow-sm ring-1 ring-slate-100">
@@ -135,9 +135,6 @@ export default function ConversationsListPage() {
               <p>
                 Showing <span className="font-semibold text-slate-900">{filtered.length}</span> of{' '}
                 <span className="font-semibold text-slate-900">{conversations.length}</span> consultations
-              </p>
-              <p className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-200">
-                Responsive cards on mobile | Table on desktop
               </p>
             </div>
 

@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# PrescriptoAI (MediScript AI)
 
-## Getting Started
+PrescriptoAI is a Next.js app for doctors to record patient consultations, generate a structured prescription using OpenAI, review/edit it, and download a clean PDF.
 
-First, run the development server:
+## Features
+
+- Doctor authentication (JWT cookie)
+- Patient management (name, age, gender, phone)
+- Record audio in the browser and upload it for transcription
+- Structured extraction (presenting complaint, diagnosis, medications, investigations, advice/follow-up)
+- Prescription review workflow (draft → approved)
+- PDF download for approved prescriptions
+
+## Tech stack
+
+- Next.js App Router (`app/`)
+- SQL Server via `mssql`
+- OpenAI (`whisper-1` transcription + chat completion for structuring)
+- PDF generation via `pdf-lib`
+- Tailwind CSS
+
+## Quickstart
+
+### 1) Install dependencies
+
+```bash
+npm install
+```
+
+### 2) Configure environment variables
+
+Create a `.env.local` file in the project root:
+
+```bash
+JWT_SECRET="replace-with-a-long-random-secret-min-32-chars"
+OPENAI_API_KEY="sk-..."
+```
+
+Notes:
+- Keep `.env.local` private (do not commit it).
+- Rotate keys immediately if you accidentally shared them.
+
+### 3) Configure the database connection (SQL Server)
+
+Database connection is configured in `lib/db.js`. Update these values to match your SQL Server setup:
+
+- `server` (machine name / instance, e.g. `localhost\\SQLEXPRESS`)
+- `user` / `password`
+- `database`
+
+The app expects SQL Server authentication to be enabled (not Windows-only auth).
+
+### 4) Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## How it works (workflow)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Sign up / sign in as a **doctor**.
+2. Add a patient in **Dashboard → Patients**.
+3. Go to **Record**, select a patient, and record audio.
+4. The backend:
+   - Transcribes audio with OpenAI Whisper
+   - Extracts a structured prescription JSON with OpenAI Chat Completions
+   - Stores a draft prescription + medications + investigations in SQL Server
+5. Open the conversation, review/edit, then **Approve**.
+6. Download the PDF (only available once approved).
 
-## Learn More
+## API routes (high level)
 
-To learn more about Next.js, take a look at the following resources:
+Auth:
+- `POST /api/auth/signup` – create user + set auth cookie
+- `POST /api/auth/login` – sign in + set auth cookie
+- `POST /api/auth/logout` – clear auth cookie
+- `GET /api/auth/me` – return current user
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Patients:
+- `GET /api/patients` – list patients
+- `POST /api/patients` – create patient
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Conversations & prescriptions:
+- `POST /api/record` – upload audio + create conversation + create draft prescription
+- `GET /api/conversations` – list conversations for current doctor
+- `GET /api/conversations/:id` – conversation details + prescription + meds/investigations
+- `POST /api/conversations/:id` – update meds/investigations for a **draft** prescription
+- `PATCH /api/prescriptions/:id` – approve or update prescription items (draft-only)
+- `GET /api/prescriptions/:id/pdf` – generate PDF for an **approved** prescription
 
-## Deploy on Vercel
+## Data model (tables used)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app reads/writes these SQL Server tables:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `Users` (signup/login)
+- `Patients`
+- `Conversations`
+- `Prescriptions`
+- `Medications`
+- `Investigations`
+- `AuditLogs` (records approvals)
+
+If you don’t have a schema yet, create tables/columns to match what the API queries in `app/api/**/route.js`.
+
+## Configuration notes
+
+- Auth uses an HTTP-only cookie named `prescriptoai_token` with a 7-day JWT.
+- OpenAI configuration lives in `lib/config.js` and reads `OPENAI_API_KEY`.
+- Database configuration is currently hardcoded in `lib/db.js` (recommended: move to environment variables for production).
+
+## Troubleshooting
+
+- **Signup says database login failed**
+  - Enable SQL Server authentication, verify user/password, and update `lib/db.js`.
+- **Record fails**
+  - Ensure `OPENAI_API_KEY` is set and the server can reach OpenAI.
+  - Browser recording requires microphone permissions (and generally HTTPS in production).
+- **PDF download says “must be approved”**
+  - Approve the prescription first; the PDF route rejects drafts by design.
+
+## Scripts
+
+- `npm run dev` – start dev server
+- `npm run build` – production build
+- `npm run start` – run production server
+- `npm run lint` – run ESLint
