@@ -113,12 +113,13 @@ export default function AppShell({ user, children }) {
       }`}
     >
       <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-sm font-bold text-white">
-          Rx
-        </div>
+        
         {!collapsed && (
           <div>
-            <p className="text-sm font-semibold text-slate-900">PrescriptoAI</p>
+            <p className="text-sm font-semibold text-slate-900">
+
+              <img src="/PrescriptoAI.png" alt="PrescriptoAI" className="h-12 w-auto pl-10" />
+            </p>
             
           </div>
         )}
