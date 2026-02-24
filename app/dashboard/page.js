@@ -229,10 +229,7 @@ text-gray-700 transition hover:bg-gray-100 md:flex-none"
                             <p className="text-[11px] uppercase tracking-wide text-slate-500">Date</p>
                             <p className="font-medium">{formatDate(c.date)}</p>
                           </div>
-                          <div className="col-span-2 rounded-lg bg-slate-50 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500">Diagnosis</p>
-                            <p className="font-medium">{c.diagnosis || '-'}</p>
-                          </div>
+                          
                         </div>
                         <div className="mt-4 flex items-center justify-between">
                           <span className="text-xs uppercase tracking-wide text-slate-500">Tap to view</span>
@@ -258,7 +255,7 @@ text-gray-700 transition hover:bg-gray-100 md:flex-none"
                           <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking text-slate-600">Patient</th>
                           <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking text-slate-600">MRN</th>
                           <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking text-slate-600">Date</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking text-slate-600">Diagnosis</th>
+                         
                           <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking text-slate-600">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking text-slate-600">Action</th>
                         </tr>
@@ -276,7 +273,7 @@ text-gray-700 transition hover:bg-gray-100 md:flex-none"
                             </td>
                             <td className="px-6 py-4 text-sm text-slate-600">{c.mrn}</td>
                             <td className="px-6 py-4 text-sm text-slate-600">{formatDate(c.date)}</td>
-                            <td className="px-6 py-4 text-sm text-slate-600">{c.diagnosis || '-'}</td>
+                            
                             <td className="px-6 py-4">
                               <span
                                 className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${statusColors[c.status] || statusColors.draft

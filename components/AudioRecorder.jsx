@@ -121,7 +121,7 @@ export default function AudioRecorder({ onSubmit, disabled }) {
               disabled={disabled || submitting}
               className="rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {submitting ? 'Submitting...' : 'Submit recording'}
+              {submitting ? 'Processing....' : 'processing record'}
             </button>
             <button
               type="button"
