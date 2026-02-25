@@ -24,6 +24,7 @@ import {
   Syringe,
 } from "lucide-react";
 
+
 export default function Home() {
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -88,6 +89,8 @@ export default function Home() {
         </div>
       </header>
 
+      
+
       {/* Hero Section with Medical Focus */}
       <section className="relative mx-auto max-w-7xl px-6 py-24">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -145,7 +148,7 @@ export default function Home() {
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <UserRound className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm text-slate-300">Patient: ROHAN SHAH</span>
+                    <span className="text-sm text-slate-300">Patient: Rohan Shah</span>
                   </div>
                   <div className="flex gap-2">
                     <Calendar className="w-4 h-4 text-slate-400" />
@@ -179,6 +182,7 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
 
       {/* Workflow Section */}
       <section className="relative py-24 border-y border-white/10">

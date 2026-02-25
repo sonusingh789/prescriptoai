@@ -98,7 +98,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500 sm:text-xs">Dashboard</p>
-                <h1 className="text-3xl font-semibold leading-snug sm:text-4xl">Welcome back, {user.name || 'Doctor'}</h1>
+                <h1 className="text-3xl font-semibold leading-snug sm:text-4xl">Welcome back, Dr. {user.name || 'Doctor'}</h1>
                 <p className="text-sm text-slate-600 sm:text-base">
                   Quick snapshot of your consultations, prescriptions, and patients.
                 </p>
