@@ -1,4 +1,4 @@
-# PrescriptoAI (MediScript AI)
+# PrescriptoAI
 
 PrescriptoAI is a Next.js app for doctors to record patient consultations, generate a structured prescription using OpenAI, review/edit it, and download a clean PDF.
 
